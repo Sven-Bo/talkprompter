@@ -491,6 +491,10 @@ public partial class MainWindow : Window
                 ViewModel.NudgeWords(-8);
                 e.Handled = true;
                 break;
+            case Key.Home when !editing:
+                ViewModel.ResetPositionCommand.Execute(null);
+                e.Handled = true;
+                break;
         }
     }
 

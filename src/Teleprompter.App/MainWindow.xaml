@@ -15,13 +15,14 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Toolbar (wraps on narrow windows) -->
-        <Border Grid.Row="0" Background="{DynamicResource Surface}"
-                BorderBrush="{DynamicResource BorderCol}" BorderThickness="0,0,0,1" Padding="12,8">
+        <!-- Toolbar at the BOTTOM: the text hugs the top edge, closest to the
+             webcam, so the app can sit right under the camera as a strip. -->
+        <Border Grid.Row="1" Background="{DynamicResource Surface}"
+                BorderBrush="{DynamicResource BorderCol}" BorderThickness="0,1,0,0" Padding="12,8">
             <Grid>
                 <DockPanel LastChildFill="True">
                     <!-- Status pill -->
@@ -73,9 +74,9 @@
                                   DisplayMemberPath="Name" MinWidth="130" MaxWidth="180"
                                   VerticalAlignment="Center" Margin="0,2,8,2"
                                   ToolTip="Recent scripts - the reading position is remembered per script" />
-                        <Button Content="Reset" Style="{StaticResource GhostButton}"
+                        <Button Content="Top" Style="{StaticResource GhostButton}"
                                 Command="{Binding ResetPositionCommand}" Margin="0,2,8,2"
-                                ToolTip="Jump back to the top of the script" />
+                                ToolTip="Scroll back to the top of the script (Home)" />
                         <Button Content="A-" Style="{StaticResource GhostButton}" Click="OnFontSmaller"
                                 Margin="0,2,6,2" ToolTip="Smaller text" />
                         <Button Content="A+" Style="{StaticResource GhostButton}" Click="OnFontLarger"
@@ -99,12 +100,12 @@
                 </DockPanel>
 
                 <!-- Settings popup -->
-                <Popup PlacementTarget="{Binding ElementName=SettingsToggle}" Placement="Bottom"
+                <Popup PlacementTarget="{Binding ElementName=SettingsToggle}" Placement="Top"
                        StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
                        IsOpen="{Binding IsChecked, ElementName=SettingsToggle}"
                        Opened="OnSettingsPopupOpened">
                     <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource BorderCol}"
-                            BorderThickness="1" CornerRadius="10" Padding="16,16,8,16" Margin="0,6,0,0" Width="320">
+                            BorderThickness="1" CornerRadius="10" Padding="16,16,8,16" Margin="0,0,0,6" Width="320">
                         <!-- Taller than the window: scroll, never clip off-screen -->
                         <ScrollViewer x:Name="SettingsScroll" VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled" MaxHeight="540"
@@ -189,7 +190,7 @@
                             <TextBlock Foreground="{DynamicResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,6"
                                        Text="Tip: use Camera mode and place the strip as close to your webcam as possible. The shorter the gaze distance, the less eye movement your viewers see." />
                             <TextBlock Foreground="{DynamicResource Muted}" FontSize="11" TextWrapping="Wrap"
-                                       Text="Shortcuts: Space = start/stop. Ctrl+Alt+Space works from any app. PageUp/PageDown = nudge 8 words. Ctrl+PageUp/PageDown = jump paragraphs. Click any word to re-anchor. F11 = full screen." />
+                                       Text="Shortcuts: Space = start/stop. Ctrl+Alt+Space works from any app. Home = back to top. PageUp/PageDown = nudge 8 words. Ctrl+PageUp/PageDown = jump paragraphs. Click any word to re-anchor. F11 = full screen." />
 
                             <Border Height="1" Background="{DynamicResource BorderCol}" Margin="0,12,0,10" />
 
@@ -241,7 +242,7 @@
         </Border>
 
         <!-- Prompter surface -->
-        <Grid Grid.Row="1" ClipToBounds="True">
+        <Grid Grid.Row="0" ClipToBounds="True">
             <ScrollViewer x:Name="Scroller" VerticalScrollBarVisibility="Hidden"
                           HorizontalScrollBarVisibility="Disabled"
                           SizeChanged="OnScrollerSizeChanged">
