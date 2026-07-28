@@ -292,6 +292,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] private double _columnWidth = 680;
     [ObservableProperty] private bool _countdownEnabled = true;
     [ObservableProperty] private bool _showHeardText;
+
+    /// <summary>Narrow window: secondary toolbar controls collapse into the ☰ menu.</summary>
+    [ObservableProperty] private bool _isCompactToolbar;
     [ObservableProperty] private bool _flowModeEnabled;
     [ObservableProperty] private bool _mirrorHorizontal;
     [ObservableProperty] private bool _forceSimulation;

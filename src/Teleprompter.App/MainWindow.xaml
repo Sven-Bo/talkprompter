@@ -59,7 +59,8 @@
                             </Ellipse>
                             <TextBlock Text="{Binding StatusText}" Foreground="{DynamicResource TextCol}"
                                        VerticalAlignment="Center" FontSize="13" MaxWidth="380"
-                                       TextTrimming="CharacterEllipsis" />
+                                       TextTrimming="CharacterEllipsis"
+                                       Visibility="{Binding IsCompactToolbar, Converter={StaticResource InvBoolToVis}}" />
                         </StackPanel>
                     </Border>
 
@@ -69,29 +70,79 @@
                                 ToolTip="Start or stop voice tracking (Space)" />
                         <Button Content="Edit script" Style="{StaticResource GhostButton}"
                                 Click="OnEditScript" Margin="0,2,8,2"
+                                Visibility="{Binding IsCompactToolbar, Converter={StaticResource InvBoolToVis}}"
                                 ToolTip="Open the script editor" />
                         <ComboBox ItemsSource="{Binding Scripts}" SelectedItem="{Binding SelectedScript}"
                                   DisplayMemberPath="Name" MinWidth="130" MaxWidth="180"
                                   VerticalAlignment="Center" Margin="0,2,8,2"
+                                  Visibility="{Binding IsCompactToolbar, Converter={StaticResource InvBoolToVis}}"
                                   ToolTip="Recent scripts - the reading position is remembered per script" />
                         <Button Content="Top" Style="{StaticResource GhostButton}"
                                 Command="{Binding ResetPositionCommand}" Margin="0,2,8,2"
                                 ToolTip="Scroll back to the top of the script (Home)" />
+                        <!-- Narrow window: everything below lives in this menu instead -->
+                        <ToggleButton x:Name="MenuToggle" Content="☰"
+                                      Style="{StaticResource ToolToggle}" Margin="0,2,8,2"
+                                      Visibility="{Binding IsCompactToolbar, Converter={StaticResource BoolToVis}}"
+                                      ToolTip="More controls" />
+                        <Popup PlacementTarget="{Binding ElementName=MenuToggle}" Placement="Top"
+                               StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
+                               IsOpen="{Binding IsChecked, ElementName=MenuToggle}">
+                            <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource BorderCol}"
+                                    BorderThickness="1" CornerRadius="10" Padding="10" Margin="0,0,0,6">
+                                <StackPanel ButtonBase.Click="OnCompactMenuItemClicked" Width="190">
+                                    <ComboBox ItemsSource="{Binding Scripts}" SelectedItem="{Binding SelectedScript}"
+                                              DisplayMemberPath="Name" Margin="0,0,0,8"
+                                              ToolTip="Recent scripts" />
+                                    <Button Content="Edit script" Style="{StaticResource GhostButton}"
+                                            Click="OnEditScript" HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Left" Margin="0,0,0,6" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                        <Button Content="A-" Style="{StaticResource GhostButton}"
+                                                Click="OnFontSmaller" Margin="0,0,6,0" ToolTip="Smaller text" />
+                                        <Button Content="A+" Style="{StaticResource GhostButton}"
+                                                Click="OnFontLarger" ToolTip="Larger text" />
+                                    </StackPanel>
+                                    <Button Content="Mirror" Style="{StaticResource GhostButton}"
+                                            Click="OnToggleMirror" HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Left" Margin="0,0,0,6"
+                                            ToolTip="Flip horizontally for beam-splitter glass" />
+                                    <Button Content="On top" Style="{StaticResource GhostButton}"
+                                            Click="OnToggleTopmost" HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Left" Margin="0,0,0,6"
+                                            ToolTip="Keep this window above all others" />
+                                    <Button Content="Camera" Style="{StaticResource GhostButton}"
+                                            Click="OnToggleCameraMode" HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Left" Margin="0,0,0,6"
+                                            ToolTip="Narrow always-on-top strip under your webcam" />
+                                    <Button Content="Full screen" Style="{StaticResource GhostButton}"
+                                            Click="OnToggleFullscreen" HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Left"
+                                            ToolTip="Full screen (F11, Esc to exit)" />
+                                </StackPanel>
+                            </Border>
+                        </Popup>
                         <Button Content="A-" Style="{StaticResource GhostButton}" Click="OnFontSmaller"
-                                Margin="0,2,6,2" ToolTip="Smaller text" />
+                                Margin="0,2,6,2" ToolTip="Smaller text"
+                                Visibility="{Binding IsCompactToolbar, Converter={StaticResource InvBoolToVis}}" />
                         <Button Content="A+" Style="{StaticResource GhostButton}" Click="OnFontLarger"
-                                Margin="0,2,8,2" ToolTip="Larger text" />
+                                Margin="0,2,8,2" ToolTip="Larger text"
+                                Visibility="{Binding IsCompactToolbar, Converter={StaticResource InvBoolToVis}}" />
                         <ToggleButton x:Name="MirrorToggle" Content="Mirror" Click="OnToggleMirror"
                                       Style="{StaticResource ToolToggle}" Margin="0,2,8,2"
+                                      Visibility="{Binding IsCompactToolbar, Converter={StaticResource InvBoolToVis}}"
                                       ToolTip="Flip horizontally for beam-splitter glass" />
                         <ToggleButton x:Name="TopmostToggle" Content="On top" Click="OnToggleTopmost"
                                       Style="{StaticResource ToolToggle}" Margin="0,2,8,2"
+                                      Visibility="{Binding IsCompactToolbar, Converter={StaticResource InvBoolToVis}}"
                                       ToolTip="Keep this window above all others" />
                         <ToggleButton x:Name="CameraToggle" Content="Camera" Click="OnToggleCameraMode"
                                       Style="{StaticResource ToolToggle}" Margin="0,2,8,2"
+                                      Visibility="{Binding IsCompactToolbar, Converter={StaticResource InvBoolToVis}}"
                                       ToolTip="Narrow always-on-top strip at the top of the screen, right under your webcam" />
                         <ToggleButton x:Name="FullToggle" Content="Full screen" Click="OnToggleFullscreen"
                                       Style="{StaticResource ToolToggle}" Margin="0,2,8,2"
+                                      Visibility="{Binding IsCompactToolbar, Converter={StaticResource InvBoolToVis}}"
                                       ToolTip="Full screen (F11, Esc to exit)" />
                         <ToggleButton x:Name="SettingsToggle" Content="Settings"
                                       Style="{StaticResource ToolToggle}" Margin="0,2,0,2"

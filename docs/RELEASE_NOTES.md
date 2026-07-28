@@ -1,5 +1,4 @@
-## What's new in 1.0.1
+## What's new in 1.0.2
 
-- The controls moved to the bottom of the window. The script now starts right at the top edge, so you can park the app at the top of your screen, directly under the webcam, and keep your eyes near the lens.
-- New Top button (was called Reset) scrolls back to the top of the script. The Home key does the same.
-- The Settings panel opens upward from the bottom bar.
+- Narrow windows get a clean compact toolbar: Start, Top, a ☰ menu with the remaining controls, and Settings. No more buttons stacking on top of each other when the window is small.
+- The status text hides in compact mode; the colored tracking dot and mic meter stay.

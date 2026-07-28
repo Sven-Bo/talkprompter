@@ -48,6 +48,7 @@ public partial class MainWindow : Window
 
         SourceInitialized += OnSourceInitialized;
         Loaded += OnLoaded;
+        SizeChanged += OnWindowSizeChanged;
         Closing += OnClosing;
         Closed += OnClosed;
         ThemeService.ThemeApplied += OnThemeApplied;
@@ -715,14 +716,41 @@ public partial class MainWindow : Window
     private void OnFontLarger(object sender, RoutedEventArgs e)
         => ViewModel.FontSize = Math.Min(120, ViewModel.FontSize + 4);
 
+    // The mirror/topmost handlers serve two callers: the toolbar toggle itself
+    // (state already flipped by the click) and the compact ☰ menu buttons
+    // (plain buttons, so flip the state here and sync the toggle).
     private void OnToggleMirror(object sender, RoutedEventArgs e)
     {
-        ViewModel.MirrorHorizontal = MirrorToggle.IsChecked == true;
+        bool mirrored = ReferenceEquals(sender, MirrorToggle)
+            ? MirrorToggle.IsChecked == true
+            : !ViewModel.MirrorHorizontal;
+        ViewModel.MirrorHorizontal = mirrored;
+        MirrorToggle.IsChecked = mirrored;
         ApplyMirror();
     }
 
     private void OnToggleTopmost(object sender, RoutedEventArgs e)
-        => Topmost = TopmostToggle.IsChecked == true;
+    {
+        bool onTop = ReferenceEquals(sender, TopmostToggle)
+            ? TopmostToggle.IsChecked == true
+            : !Topmost;
+        Topmost = onTop;
+        TopmostToggle.IsChecked = onTop;
+    }
+
+    /// <summary>Any button chosen in the ☰ menu closes it (combo clicks stay open).</summary>
+    private void OnCompactMenuItemClicked(object sender, RoutedEventArgs e)
+    {
+        if (e.Source is Button)
+        {
+            MenuToggle.IsChecked = false;
+        }
+    }
+
+    private const double CompactToolbarWidth = 760;
+
+    private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
+        => ViewModel.IsCompactToolbar = e.NewSize.Width < CompactToolbarWidth;
 
     private void OnNavigateLink(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
     {
