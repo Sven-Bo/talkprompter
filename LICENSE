@@ -1,32 +1,21 @@
-TalkPrompter License
+MIT License
 
-Copyright (c) 2026 Bosau Digital LLC. All rights reserved.
+Copyright (c) 2026 Sven Bosau (Bosau Digital LLC)
 
-TalkPrompter is commercial software.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-Free version
-You may download, install, and use the free version at no cost, for personal
-and commercial work. The free version follows your voice on scripts up to
-200 words.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-Paid license
-A license is bought once and is yours forever. One license lets one person
-use the full version on up to three computers they own or control. Team
-licenses are one license per person.
-
-What you may not do
-You may not resell, rent, sublicense, or redistribute the software or your
-license key. You may not reverse engineer, decompile, or modify the software,
-except where the law expressly allows it despite this term.
-
-Updates
-Updates are included. There is no promise that any particular feature will
-be added or kept.
-
-No warranty
-The software is provided "as is", without warranty of any kind. To the
-maximum extent permitted by law, Bosau Digital LLC is not liable for any
-damages arising from the use of the software.
-
-Questions
-contact@pythonandvba.com
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

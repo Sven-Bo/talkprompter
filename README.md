@@ -1,6 +1,6 @@
 # TalkPrompter
 
-A teleprompter for Windows that listens to your voice and scrolls the script for you.
+A free teleprompter for Windows that listens to your voice and scrolls the script for you.
 
 You read, it follows. If you stop talking or go off script, it waits for you. When you continue, it picks up right where you left off. Everything runs on your computer, so your voice never leaves your machine.
 
@@ -18,15 +18,11 @@ I record a lot of tutorial videos and I was tired of teleprompters that scroll a
 
 Get the latest **TalkPrompter-win-Setup.exe** from the [Releases page](https://github.com/Sven-Bo/talkprompter/releases/latest) and run it. The app keeps itself up to date automatically.
 
+If you prefer no installation, there is also a portable zip on the same page.
+
 You need the .NET 8 Desktop Runtime. Windows will offer to install it if it is missing.
 
 On the first start the app offers to download a small voice pack (about 40 MB, English or German). That is the part that understands your voice. One click and you are done.
-
-## Free version and license
-
-You can try everything for free. The free version follows your voice on scripts up to 200 words, which is plenty to see if it works for you.
-
-For real videos you buy a license once on [talkprompter.com](https://talkprompter.com) and use it forever, on up to three of your computers. No subscription. Enter the key from your purchase email in Settings and every script length is unlocked.
 
 ## How to use it
 
@@ -51,9 +47,21 @@ That is really all. Some handy extras:
 - Remembers your recent scripts and where you stopped in each one
 - Camera mode, mirror mode, full screen, adjustable text size and column width
 - Shows the estimated reading time and how much is left
+- Free and open source
 
-## Support
+## Build it yourself
 
-Found a bug or have an idea? [Open an issue](https://github.com/Sven-Bo/talkprompter/issues) or write to contact@pythonandvba.com.
+```
+git clone https://github.com/Sven-Bo/talkprompter.git
+cd talkprompter
+./scripts/Get-VoskModel.ps1
+dotnet run --project src/Teleprompter.App
+```
+
+The speech models are not part of the repo because they are large. The script above downloads one for you. Without a model the app runs in a simulation mode so you can still try it.
+
+## License
+
+MIT. Do whatever you want with it.
 
 TalkPrompter is made by Sven Bosau ([Bosau Digital LLC](https://pythonandvba.com)).
