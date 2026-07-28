@@ -1,4 +1,4 @@
-## What's new in 1.0.2
+## What's new in 1.0.3
 
-- Narrow windows get a clean compact toolbar: Start, Top, a ☰ menu with the remaining controls, and Settings. No more buttons stacking on top of each other when the window is small.
-- The status text hides in compact mode; the colored tracking dot and mic meter stay.
+- The Top button and the Home key now really scroll the view back to the top.
+- Scrolling with the mouse wheel works everywhere. The app no longer pulls the view back while you scroll; the next spoken words simply take over again.

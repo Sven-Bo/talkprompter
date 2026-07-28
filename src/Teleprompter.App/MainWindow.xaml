@@ -296,7 +296,8 @@
         <Grid Grid.Row="0" ClipToBounds="True">
             <ScrollViewer x:Name="Scroller" VerticalScrollBarVisibility="Hidden"
                           HorizontalScrollBarVisibility="Disabled"
-                          SizeChanged="OnScrollerSizeChanged">
+                          SizeChanged="OnScrollerSizeChanged"
+                          PreviewMouseWheel="OnPromptMouseWheel">
                 <!-- Centered column: MaxWidth keeps lines short (5-7 words) so a
                      viewer cannot see the eyes sweep left-to-right.
                      Click any word to re-anchor the reader there. -->

@@ -104,6 +104,17 @@ public sealed class ScrollController
         _target = offset;
     }
 
+    /// <summary>
+    /// User wheel input moves the target itself — otherwise the spring would
+    /// drag the view straight back to wherever it last was told to go, which
+    /// feels like scrolling is broken. The next voice update re-takes control.
+    /// </summary>
+    public void UserScroll(double deltaPixels)
+    {
+        double limit = Math.Max(0.0, _scrollViewer.ScrollableHeight);
+        _target = Math.Clamp(_target + deltaPixels, 0.0, limit);
+    }
+
     /// <summary>Jump immediately, cancelling any in-flight motion.</summary>
     public void JumpTo(double offset)
     {

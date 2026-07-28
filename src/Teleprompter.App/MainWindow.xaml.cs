@@ -616,7 +616,10 @@ public partial class MainWindow : Window
 
         if (tokenIndex < 0 || tokenIndex >= _tokenRuns.Length)
         {
+            // Position was reset (Top button, Home, script switch): the view
+            // must actually go back to the top, not just drop the highlight.
             _currentRun = null;
+            _scroll?.SetTarget(0.0);
             return;
         }
 
@@ -641,6 +644,13 @@ public partial class MainWindow : Window
         double readingLine = viewport * ReadingFraction;
         double target = rect.Top - readingLine;
         _scroll?.SetTarget(target);
+    }
+
+    // One wheel notch (delta 120) moves ~120px — about one prompter line.
+    private void OnPromptMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        _scroll?.UserScroll(-e.Delta);
+        e.Handled = true;
     }
 
     private void OnScrollerSizeChanged(object sender, SizeChangedEventArgs e)
