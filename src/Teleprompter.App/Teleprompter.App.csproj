@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <AssemblyName>TalkPrompter</AssemblyName>
+    <RootNamespace>Teleprompter.App</RootNamespace>
+    <StartupObject>Teleprompter.App.Program</StartupObject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\app.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+    <PackageReference Include="Velopack" Version="1.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Teleprompter.Core\Teleprompter.Core.csproj" />
+    <ProjectReference Include="..\Teleprompter.Audio\Teleprompter.Audio.csproj" />
+    <ProjectReference Include="..\Teleprompter.Speech\Teleprompter.Speech.csproj" />
+  </ItemGroup>
+
+</Project>

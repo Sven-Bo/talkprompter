@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TalkPrompter - a free Windows teleprompter that follows your voice</title>
+<meta name="description" content="A free, open source teleprompter for Windows. It listens to your voice and scrolls the script for you. Works 100% offline.">
+<link rel="icon" type="image/png" href="icon.png">
+<meta property="og:title" content="TalkPrompter">
+<meta property="og:description" content="A free Windows teleprompter that listens to your voice and scrolls the script for you. 100% offline.">
+<meta property="og:image" content="https://sven-bo.github.io/talkprompter/screenshot-dark.png">
+<meta property="og:url" content="https://sven-bo.github.io/talkprompter/">
+<style>
+  :root {
+    --bg: #0F1115;
+    --surface: #181C24;
+    --surface-alt: #20262F;
+    --border: #2B313C;
+    --text: #E7EAF0;
+    --muted: #8B93A3;
+    --accent: #4C8DFF;
+    --accent-soft: rgba(76, 141, 255, 0.14);
+    --accent-text: #08101F;
+    --highlight: #FFD37A;
+    --highlight-text: #1A1205;
+    --nav-bg: rgba(15, 17, 21, 0.75);
+    --shadow: rgba(0, 0, 0, 0.45);
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #F3F5F9;
+      --surface: #FFFFFF;
+      --surface-alt: #E8ECF2;
+      --border: #D3DAE4;
+      --text: #17202B;
+      --muted: #5D6775;
+      --accent: #3B7DF2;
+      --accent-soft: rgba(59, 125, 242, 0.12);
+      --accent-text: #FFFFFF;
+      --nav-bg: rgba(243, 245, 249, 0.8);
+      --shadow: rgba(30, 45, 70, 0.16);
+    }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    line-height: 1.65;
+    overflow-x: hidden;
+  }
+  /* Horizontal container only. Longhand on purpose: a shorthand here would
+     override the vertical padding of header/section elements that also carry
+     this class (class selector beats element selector). */
+  .wrap { max-width: 1020px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
+
+  /* ---------- nav ---------- */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    background: var(--nav-bg);
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-inner {
+    max-width: 1020px; margin: 0 auto; padding: 10px 24px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .nav-inner img { width: 30px; height: 30px; border-radius: 7px; }
+  .nav-inner .name { font-weight: 700; font-size: 1rem; }
+  .nav-links { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .nav-links a.plain {
+    color: var(--muted); text-decoration: none; font-size: 0.92rem;
+    padding: 7px 12px; border-radius: 8px; transition: color 0.15s, background 0.15s;
+  }
+  .nav-links a.plain:hover { color: var(--text); background: var(--surface-alt); }
+  .btn-small {
+    background: var(--accent); color: var(--accent-text);
+    text-decoration: none; font-size: 0.9rem; font-weight: 600;
+    padding: 8px 16px; border-radius: 8px;
+    transition: transform 0.12s, box-shadow 0.2s, filter 0.15s;
+  }
+  .btn-small:hover { filter: brightness(1.1); box-shadow: 0 4px 18px var(--accent-soft); }
+
+  /* ---------- hero ---------- */
+  header {
+    position: relative;
+    padding: 140px 0 48px;
+    text-align: center;
+  }
+  .glow {
+    position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(600px 320px at 50% 10%, var(--accent-soft), transparent 70%),
+      radial-gradient(400px 260px at 82% 42%, rgba(255, 211, 122, 0.07), transparent 70%);
+  }
+  .logo {
+    width: 84px; height: 84px; border-radius: 19px; margin-bottom: 22px;
+    box-shadow: 0 12px 36px var(--shadow);
+  }
+  h1 { font-size: clamp(2.2rem, 5.5vw, 3.1rem); font-weight: 800; letter-spacing: -0.8px; }
+  .tagline {
+    font-size: clamp(1.05rem, 2.4vw, 1.3rem); color: var(--muted);
+    margin: 14px auto 22px; max-width: 640px;
+  }
+  /* the demo line: words light up one after another, like the app tracking a voice */
+  .demo-line {
+    font-size: clamp(1.1rem, 2.6vw, 1.45rem); font-weight: 650;
+    display: flex; gap: 0.45ch; justify-content: center; flex-wrap: wrap;
+    margin-bottom: 26px;
+  }
+  .demo-line span {
+    padding: 0 0.18em; border-radius: 6px;
+    animation: word-glow 5.6s infinite;
+  }
+  .demo-line span:nth-child(1) { animation-delay: 0s; }
+  .demo-line span:nth-child(2) { animation-delay: 0.7s; }
+  .demo-line span:nth-child(3) { animation-delay: 1.4s; }
+  .demo-line span:nth-child(4) { animation-delay: 2.1s; }
+  .demo-line span:nth-child(5) { animation-delay: 2.8s; }
+  .demo-line span:nth-child(6) { animation-delay: 3.5s; }
+  .demo-line span:nth-child(7) { animation-delay: 4.2s; }
+  @keyframes word-glow {
+    0%, 11%, 100% { background: transparent; color: inherit; }
+    3%, 8% { background: var(--highlight); color: var(--highlight-text); }
+  }
+  .chips { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 30px; }
+  .chip {
+    font-size: 0.82rem; color: var(--muted);
+    border: 1px solid var(--border); background: var(--surface);
+    padding: 5px 13px; border-radius: 999px;
+  }
+  .buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 9px;
+    padding: 14px 28px; border-radius: 11px;
+    font-size: 1.02rem; font-weight: 650; text-decoration: none;
+    transition: transform 0.12s ease, box-shadow 0.25s ease, filter 0.15s ease;
+  }
+  .btn svg { width: 18px; height: 18px; }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--accent); color: var(--accent-text); box-shadow: 0 6px 22px var(--accent-soft); }
+  .btn-primary:hover { filter: brightness(1.08); transform: translateY(-2px); box-shadow: 0 12px 32px var(--accent-soft); }
+  .btn-ghost { background: var(--surface-alt); color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { transform: translateY(-2px); border-color: var(--muted); }
+  .note { color: var(--muted); font-size: 0.85rem; margin-top: 16px; }
+
+  .shot { margin: 64px auto 0; max-width: 920px; position: relative; }
+  .shot::before {
+    content: ""; position: absolute; inset: -1px; z-index: -1;
+    background: linear-gradient(135deg, var(--accent-soft), transparent 40%, rgba(255, 211, 122, 0.1));
+    border-radius: 16px; filter: blur(18px);
+  }
+  .shot img, .shot video {
+    width: 100%; display: block; border-radius: 14px; border: 1px solid var(--border);
+    box-shadow: 0 16px 40px var(--shadow);
+    transition: transform 0.35s ease;
+  }
+  .shot:hover img, .shot:hover video { transform: scale(1.012); }
+
+  /* ---------- sections ---------- */
+  section { padding: 96px 0 0; }
+  .eyebrow {
+    display: block; text-align: center;
+    font-size: 0.8rem; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 10px;
+  }
+  h2 { font-size: clamp(1.5rem, 3.4vw, 2rem); text-align: center; letter-spacing: -0.4px; }
+  .sub { text-align: center; color: var(--muted); max-width: 560px; margin: 12px auto 56px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 26px;
+    transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+  }
+  .card:hover {
+    transform: translateY(-5px);
+    border-color: var(--accent);
+    box-shadow: 0 16px 40px var(--shadow);
+  }
+  .card .ic {
+    width: 42px; height: 42px; border-radius: 11px;
+    background: var(--accent-soft); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 16px;
+  }
+  .card .ic svg { width: 22px; height: 22px; }
+  .card h3 { font-size: 1.08rem; margin-bottom: 8px; }
+  .card p { color: var(--muted); font-size: 0.95rem; }
+
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px; counter-reset: step; }
+  .step {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 26px; position: relative;
+    transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+  }
+  .step:hover { transform: translateY(-5px); border-color: var(--accent); box-shadow: 0 16px 40px var(--shadow); }
+  .step::before {
+    counter-increment: step; content: counter(step);
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--accent); color: var(--accent-text);
+    font-weight: 700; margin-bottom: 14px;
+    box-shadow: 0 4px 14px var(--accent-soft);
+  }
+  .step h3 { font-size: 1.05rem; margin-bottom: 6px; }
+  .step p { color: var(--muted); font-size: 0.95rem; }
+
+  /* ---------- CTA band ---------- */
+  .cta {
+    margin-top: 96px;
+    background: linear-gradient(135deg, var(--surface), var(--surface-alt));
+    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    padding: 64px 0; text-align: center;
+  }
+  .cta h2 { margin-bottom: 8px; }
+  .cta p { color: var(--muted); margin-bottom: 26px; }
+
+  footer { padding: 34px 0 44px; text-align: center; color: var(--muted); font-size: 0.9rem; }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+  footer .line + .line { margin-top: 8px; }
+
+  /* ---------- scroll reveal ---------- */
+  .reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.6s ease, transform 0.6s ease; transition-delay: var(--d, 0s); }
+  .reveal.in { opacity: 1; transform: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .reveal { opacity: 1; transform: none; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <img src="icon.png" alt="">
+    <span class="name">TalkPrompter</span>
+    <div class="nav-links">
+      <a class="plain" href="#features">Features</a>
+      <a class="plain" href="https://github.com/Sven-Bo/talkprompter">GitHub</a>
+      <a class="btn-small" href="https://github.com/Sven-Bo/talkprompter/releases/latest/download/TalkPrompter-win-Setup.exe">Download</a>
+    </div>
+  </div>
+</nav>
+
+<header class="wrap">
+  <div class="glow"></div>
+  <img class="logo" src="icon.png" alt="TalkPrompter logo">
+  <h1>Your script, at the speed of your voice.</h1>
+  <p class="tagline">TalkPrompter is a free Windows app that listens while you read and scrolls the script for you. No fixed speed. No chasing the text.</p>
+  <div class="demo-line" aria-hidden="true">
+    <span>You</span><span>read,</span><span>it</span><span>follows.</span><span>You</span><span>pause,</span><span>it&nbsp;waits.</span>
+  </div>
+  <div class="chips">
+    <span class="chip">Free &amp; open source</span>
+    <span class="chip">100% offline</span>
+    <span class="chip">Windows 10 / 11</span>
+  </div>
+  <div class="buttons">
+    <a class="btn btn-primary" href="https://github.com/Sven-Bo/talkprompter/releases/latest/download/TalkPrompter-win-Setup.exe">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+      Download for Windows
+    </a>
+    <a class="btn btn-ghost" href="https://github.com/Sven-Bo/talkprompter">View on GitHub</a>
+  </div>
+  <p class="note">Needs the free .NET 8 Desktop Runtime. Windows offers to install it if missing.</p>
+
+  <div class="shot reveal">
+    <video autoplay muted loop playsinline poster="screenshot-dark.png"
+           aria-label="Demo: the script scrolls and highlights each word as the reader speaks">
+      <source src="demo.mp4" type="video/mp4">
+      <img src="screenshot-dark.png" alt="TalkPrompter following a script while reading">
+    </video>
+  </div>
+</header>
+
+<section class="wrap" id="features">
+  <span class="eyebrow reveal">Why it is different</span>
+  <h2 class="reveal">A prompter that actually listens</h2>
+  <p class="sub reveal">Classic teleprompters scroll at a fixed speed and make you chase the text. This one keeps up with you.</p>
+  <div class="grid">
+    <div class="card reveal" style="--d:0s">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 19v3"/></svg></div>
+      <h3>Follows your voice</h3>
+      <p>No fixed scroll speed to chase. The script moves exactly as fast as you speak, and stops the moment you stop.</p>
+    </div>
+    <div class="card reveal" style="--d:0.08s">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></div>
+      <h3>Handles retakes</h3>
+      <p>Messed up a sentence? Just read it again from anywhere. The prompter finds you and follows you back.</p>
+    </div>
+    <div class="card reveal" style="--d:0.16s">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 9.5 8 11 4.6-1.5 8-6 8-11V5Z"/><path d="M9.5 12l2 2 3.5-4"/></svg></div>
+      <h3>100% private</h3>
+      <p>Speech recognition runs on your PC. No cloud, no account, no subscription. Your voice never leaves your machine.</p>
+    </div>
+    <div class="card reveal" style="--d:0s">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg></div>
+      <h3>Word and text files</h3>
+      <p>Drag a .docx or .txt onto the window. Keep editing in Word and the prompter reloads on every save.</p>
+    </div>
+    <div class="card reveal" style="--d:0.08s">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m16 10 6-3v10l-6-3"/></svg></div>
+      <h3>Camera mode</h3>
+      <p>One click turns the app into a narrow strip right under your webcam, so viewers cannot see your eyes move.</p>
+    </div>
+    <div class="card reveal" style="--d:0.16s">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg></div>
+      <h3>Made for recording</h3>
+      <p>Script library with per script resume, mirror mode for glass rigs, global hotkeys, countdown, and time left while you read.</p>
+    </div>
+  </div>
+</section>
+
+<section class="wrap">
+  <span class="eyebrow reveal">Get started</span>
+  <h2 class="reveal">Up and running in a minute</h2>
+  <p class="sub reveal">No account, no setup wizard maze. Three steps and you are reading.</p>
+  <div class="steps">
+    <div class="step reveal" style="--d:0s">
+      <h3>Install</h3>
+      <p>Download and run the setup. It is small and keeps itself up to date.</p>
+    </div>
+    <div class="step reveal" style="--d:0.08s">
+      <h3>Get the voice pack</h3>
+      <p>On first start the app offers a one time 40 MB download, English or German. That is the part that understands you.</p>
+    </div>
+    <div class="step reveal" style="--d:0.16s">
+      <h3>Read</h3>
+      <p>Paste your script or drop a file on the window, press Start, and just read.</p>
+    </div>
+  </div>
+</section>
+
+<div class="cta reveal">
+  <div class="wrap">
+    <h2>Ready when you are</h2>
+    <p>Free, open source, and yours to keep. No strings attached.</p>
+    <div class="buttons">
+      <a class="btn btn-primary" href="https://github.com/Sven-Bo/talkprompter/releases/latest/download/TalkPrompter-win-Setup.exe">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+        Download for Windows
+      </a>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <p class="line">MIT License. Made by <a href="https://pythonandvba.com">Sven Bosau</a> (<a href="https://github.com/Sven-Bo">Sven-Bo</a> on GitHub).
+    Found a bug? <a href="https://github.com/Sven-Bo/talkprompter/issues">Open an issue</a>.</p>
+    <p class="line">Bosau Digital LLC &middot; <a href="mailto:contact@pythonandvba.com">contact@pythonandvba.com</a></p>
+  </div>
+</footer>
+
+<script>
+  // Scroll reveal: fade cards in as they enter the viewport (once).
+  const items = document.querySelectorAll(".reveal");
+  if ("IntersectionObserver" in window) {
+    const io = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("in");
+          io.unobserve(entry.target);
+        }
+      }
+    }, { threshold: 0.12 });
+    items.forEach((el) => io.observe(el));
+  } else {
+    items.forEach((el) => el.classList.add("in"));
+  }
+</script>
+
+</body>
+</html>

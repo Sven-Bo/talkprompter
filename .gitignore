@@ -1,0 +1,21 @@
+# Build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+publish/
+publish-standalone/
+dist/
+*.user
+
+# Rider / VS
+.idea/
+.vs/
+
+# Speech models (large; download with scripts/Get-VoskModel.ps1)
+models/*/
+!models/README.md
+
+# OS
+Thumbs.db
+.DS_Store
