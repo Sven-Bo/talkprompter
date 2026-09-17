@@ -22,6 +22,7 @@ public sealed class ScriptModel
 
     private ScriptModel(
         string text,
+        TextRules textRules,
         IReadOnlyList<ScriptToken> tokens,
         IReadOnlyList<string> matchWords,
         int[] matchWordToToken,
@@ -29,12 +30,19 @@ public sealed class ScriptModel
         IReadOnlyList<int> paragraphStartTokens)
     {
         Text = text;
+        TextRules = textRules;
         Tokens = tokens;
         MatchWords = matchWords;
         _matchWordToToken = matchWordToToken;
         _tokenToFirstMatchWord = tokenToFirstMatchWord;
         ParagraphStartTokens = paragraphStartTokens;
     }
+
+    /// <summary>
+    /// The language rules the script was built with. Speech must be normalized
+    /// with the same rules to match it.
+    /// </summary>
+    public TextRules TextRules { get; }
 
     /// <summary>
     /// Token indices that begin a paragraph (blank-line separated), for section
@@ -77,10 +85,15 @@ public sealed class ScriptModel
         return _tokenToFirstMatchWord[tokenIndex];
     }
 
-    public static ScriptModel Build(string text)
+    /// <summary>Builds an English script (numbers expand to English words).</summary>
+    public static ScriptModel Build(string text) => Build(text, TextRules.English);
+
+    /// <summary>Builds a script normalized with a language's <paramref name="rules"/>.</summary>
+    public static ScriptModel Build(string text, TextRules rules)
     {
         text ??= string.Empty;
-        List<ScriptToken> tokens = TextNormalizer.Tokenize(text);
+        ArgumentNullException.ThrowIfNull(rules);
+        List<ScriptToken> tokens = TextNormalizer.Tokenize(text, rules);
 
         var matchWords = new List<string>(tokens.Count);
         var matchWordToToken = new List<int>(tokens.Count);
@@ -89,11 +102,12 @@ public sealed class ScriptModel
         foreach (ScriptToken token in tokens)
         {
             tokenToFirstMatchWord[token.Index] = matchWords.Count;
-            AppendTokenWords(token.Normalized, token.Index, matchWords, matchWordToToken);
+            AppendTokenWords(token.Normalized, token.Index, rules.ExpandNumbers, matchWords, matchWordToToken);
         }
 
         return new ScriptModel(
             text,
+            rules,
             tokens,
             matchWords,
             matchWordToToken.ToArray(),
@@ -134,10 +148,11 @@ public sealed class ScriptModel
     private static void AppendTokenWords(
         string normalized,
         int tokenIndex,
+        bool expandNumbers,
         List<string> matchWords,
         List<int> matchWordToToken)
     {
-        if (NumberExpander.IsAllDigits(normalized))
+        if (expandNumbers && NumberExpander.IsAllDigits(normalized))
         {
             foreach (string word in NumberExpander.ToWords(normalized))
             {

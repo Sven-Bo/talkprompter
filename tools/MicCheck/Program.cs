@@ -14,6 +14,14 @@ using Teleprompter.Speech;
 //   (default)      listen to the default mic and print live recognition
 //   --seconds N    how long to listen in live mode (default 20)
 //   --no-grammar   use open-vocabulary recognition instead of script grammar
+//   --wav <file>   decode a 16 kHz mono wav and report how far the matcher tracked
+//   --script-file <file>  use this script (UTF-8 text) instead of the sample
+//   --lang <code>  text rules for the script language (default en)
+//   --realtime     feed the wav at real speed (with --trace: measures follow lag)
+//   --trace        print "ADVANCE <seconds> <word index>" whenever the position moves
+
+// Scripts and hypotheses in any language must survive the console.
+Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 // --docx <file>: print the extracted script text (no model needed).
 int docxIdx = Array.IndexOf(args, "--docx");
@@ -35,11 +43,19 @@ if (modelPath is null)
 Console.WriteLine($"Model: {modelPath}");
 
 // The app's default sample script — its words become the recognizer grammar.
-const string script =
+string script =
     "Welcome to TalkPrompter. As you read this text aloud, the script " +
     "scrolls itself to keep pace with your voice. If you stop speaking or wander " +
     "off script, the scrolling pauses and waits for you.";
-var model = ScriptModel.Build(script);
+int scriptIdx = Array.IndexOf(args, "--script-file");
+if (scriptIdx >= 0 && scriptIdx + 1 < args.Length)
+{
+    script = File.ReadAllText(args[scriptIdx + 1]);
+}
+
+int langIdx = Array.IndexOf(args, "--lang");
+string lang = langIdx >= 0 && langIdx + 1 < args.Length ? args[langIdx + 1] : "en";
+var model = ScriptModel.Build(script, TextRules.ForLanguage(lang));
 var vocabulary = model.MatchWords.Distinct().ToList();
 bool useGrammar = !args.Contains("--no-grammar");
 
@@ -89,33 +105,77 @@ using (engine)
         const int headerBytes = 44;
 
         string last = string.Empty;
+        var wavMatcher = new ScriptMatcher(model);
+        bool trace = args.Contains("--trace");
+        var clock = System.Diagnostics.Stopwatch.StartNew();
         engine.HypothesisReceived += (_, h) =>
         {
             last = h.Text;
+            int before = wavMatcher.CurrentTokenIndex;
+            wavMatcher.Process(h.Text);
+            if (trace && wavMatcher.CurrentTokenIndex != before)
+            {
+                Console.WriteLine($"ADVANCE {clock.Elapsed.TotalSeconds:F2} {wavMatcher.CurrentTokenIndex}");
+            }
             if (h.IsFinal)
             {
                 Console.WriteLine($"FINAL: {h.Text}");
             }
         };
 
+        // sherpa-onnx decodes on a bounded worker queue that drops audio when
+        // flooded, so feed it at ~4x real time and let it drain before Stop.
+        bool queued = engine is SherpaOnnxSpeechEngine;
+        bool realtime = args.Contains("--realtime");
         const int chunk = 3200; // 0.1 s
+        long fedBytes = 0;
+        clock.Restart();
+
+        // Real time paces against the clock (Thread.Sleep alone drifts), so
+        // trace timestamps line up with positions in the audio.
+        void Feed(byte[] buf, int len)
+        {
+            engine.AcceptWaveform(buf, len);
+            fedBytes += len;
+            if (realtime)
+            {
+                int ahead = (int)(fedBytes * 1000 / 32000 - clock.ElapsedMilliseconds);
+                if (ahead > 0)
+                {
+                    Thread.Sleep(ahead);
+                }
+            }
+            else if (queued)
+            {
+                Thread.Sleep(25);
+            }
+        }
+
         for (int off = headerBytes; off < wav.Length; off += chunk)
         {
             int len = Math.Min(chunk, wav.Length - off);
             byte[] buf = new byte[len];
             Array.Copy(wav, off, buf, 0, len);
-            engine.AcceptWaveform(buf, len);
+            Feed(buf, len);
         }
 
         // Trailing silence so the endpoint detector commits the utterance.
         byte[] pad = new byte[chunk];
         for (int i = 0; i < 30; i++)
         {
-            engine.AcceptWaveform(pad, pad.Length);
+            Feed(pad, pad.Length);
+        }
+
+        if (queued)
+        {
+            Thread.Sleep(3000);
         }
 
         engine.Stop();
         Console.WriteLine($"LAST HYPOTHESIS: {last}");
+        int reached = wavMatcher.CurrentTokenIndex;
+        string reachedWord = reached >= 0 ? model.Tokens[reached].Normalized : "-";
+        Console.WriteLine($"TRACKED: word {reached + 1} of {model.TokenCount} (\"{reachedWord}\")");
         return string.IsNullOrWhiteSpace(last) ? 5 : 0;
     }
 
@@ -197,8 +257,7 @@ static string? FindModel()
 
         foreach (string candidate in candidates)
         {
-            if (Directory.Exists(Path.Combine(candidate, "am")) ||
-                Directory.Exists(Path.Combine(candidate, "conf")))
+            if (ModelScanner.IsVoskModel(candidate))
             {
                 return candidate;
             }

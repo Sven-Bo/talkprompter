@@ -194,6 +194,20 @@
                                 </Style>
                             </ScrollViewer.Resources>
                             <StackPanel>
+                            <TextBlock Text="Language" Style="{StaticResource Label}" />
+                            <Grid Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding ActiveLanguageSummary}" Foreground="{DynamicResource TextCol}"
+                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <Button Grid.Column="1" Content="Change…" Style="{StaticResource GhostButton}"
+                                        Command="{Binding OpenLanguagePickerCommand}" Click="OnOpenLanguagePicker"
+                                        Padding="10,5" FontSize="11" Margin="8,0,0,0"
+                                        ToolTip="Pick the language you read in and download its voice pack" />
+                            </Grid>
+
                             <TextBlock Text="Theme" Style="{StaticResource Label}" />
                             <ComboBox ItemsSource="{Binding ThemeChoices}" SelectedItem="{Binding SelectedThemeChoice}"
                                       Margin="0,0,0,14" />
@@ -244,12 +258,6 @@
                                        Text="Shortcuts: Space = start/stop. Ctrl+Alt+Space works from any app. Home = back to top. PageUp/PageDown = nudge 8 words. Ctrl+PageUp/PageDown = jump paragraphs. Click any word to re-anchor. F11 = full screen." />
 
                             <Border Height="1" Background="{DynamicResource BorderCol}" Margin="0,12,0,10" />
-
-                            <Button Content="Download voice pack" Style="{StaticResource GhostButton}"
-                                    Command="{Binding ShowModelPromptOverlayCommand}" Padding="10,5" FontSize="11"
-                                    Margin="0,0,0,10" HorizontalAlignment="Left"
-                                    Visibility="{Binding HasNoModels, Converter={StaticResource BoolToVis}}"
-                                    ToolTip="Get the speech model so the app can follow your voice" />
 
                             <CheckBox Content="Check for updates automatically on start"
                                       IsChecked="{Binding AutoUpdateCheckEnabled}"
@@ -374,22 +382,22 @@
                 </Border>
             </Border>
 
-            <!-- First-run voice pack download -->
+            <!-- Language picker (also the first-run voice pack prompt) -->
             <Border Background="{DynamicResource OverlayScrim}"
                     Visibility="{Binding ShowModelPrompt, Converter={StaticResource BoolToVis}}">
                 <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource BorderCol}"
-                        BorderThickness="1" CornerRadius="14" Padding="26" Width="440"
+                        BorderThickness="1" CornerRadius="14" Padding="26" Width="460"
                         HorizontalAlignment="Center" VerticalAlignment="Center">
                     <StackPanel>
-                        <TextBlock Text="One quick thing" Foreground="{DynamicResource TextCol}"
+                        <TextBlock Text="{Binding LanguageDialogTitle}" Foreground="{DynamicResource TextCol}"
                                    FontSize="20" FontWeight="SemiBold" />
                         <TextBlock Foreground="{DynamicResource Muted}" FontSize="13" TextWrapping="Wrap"
-                                   Margin="0,10,0,18"
-                                   Text="To follow your voice while you read, the app needs a small voice pack. It is a one time download of about 40 MB. Everything runs on your computer. Nothing you say is sent anywhere." />
+                                   Margin="0,10,0,18" Text="{Binding LanguageDialogText}" />
 
                         <TextBlock Text="Language" Style="{StaticResource Label}" />
-                        <ComboBox ItemsSource="{Binding VoicePacks}" SelectedItem="{Binding SelectedVoicePack}"
-                                  Margin="0,0,0,16" />
+                        <ComboBox ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding SelectedLanguageOption}"
+                                  IsEnabled="{Binding CanPickLanguage}"
+                                  MaxDropDownHeight="360" Margin="0,0,0,16" />
 
                         <ProgressBar Value="{Binding DownloadProgress, Mode=OneWay}" Maximum="100"
                                      Margin="0,0,0,8"
@@ -399,15 +407,15 @@
                                    Visibility="{Binding DownloadStatus, Converter={StaticResource NonEmptyToVis}}" />
 
                         <Grid>
-                            <Button Content="Skip for now" Style="{StaticResource GhostButton}"
-                                    Command="{Binding SkipModelPromptCommand}" HorizontalAlignment="Left"
-                                    ToolTip="You can get the voice pack later from Settings. Without it the app runs in simulation mode." />
+                            <Button Content="{Binding LanguageDismissText}" Style="{StaticResource GhostButton}"
+                                    Command="{Binding DismissLanguagePickerCommand}" HorizontalAlignment="Left"
+                                    ToolTip="You can pick a language later in Settings. Without a voice pack the app runs in simulation mode." />
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <Button Content="Cancel" Style="{StaticResource GhostButton}"
                                         Command="{Binding CancelDownloadCommand}" Margin="0,0,8,0"
                                         Visibility="{Binding IsDownloading, Converter={StaticResource BoolToVis}}" />
-                                <Button Content="Download" Style="{StaticResource PrimaryButton}"
-                                        Command="{Binding DownloadModelCommand}" MinWidth="110" />
+                                <Button Content="{Binding LanguageActionText}" Style="{StaticResource PrimaryButton}"
+                                        Command="{Binding ApplyLanguageCommand}" MinWidth="110" />
                             </StackPanel>
                         </Grid>
                     </StackPanel>

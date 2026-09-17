@@ -5,6 +5,7 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>TalkPrompter</AssemblyName>
     <RootNamespace>Teleprompter.App</RootNamespace>
     <StartupObject>Teleprompter.App.Program</StartupObject>

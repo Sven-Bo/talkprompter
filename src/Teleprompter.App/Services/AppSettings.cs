@@ -42,6 +42,12 @@ public sealed record AppSettings
     /// <summary>True once the first-run voice pack prompt was answered or skipped.</summary>
     public bool ModelPromptDismissed { get; init; }
 
+    /// <summary>
+    /// Language code of the voice pack in use (e.g. "pl"). Null until chosen;
+    /// the app then uses whichever pack is installed.
+    /// </summary>
+    public string? VoiceLanguage { get; init; }
+
     public IReadOnlyList<ScriptEntry> RecentScripts { get; init; } = Array.Empty<ScriptEntry>();
 
     public double WindowLeft { get; init; } = double.NaN;

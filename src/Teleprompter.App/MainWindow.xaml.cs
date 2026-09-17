@@ -810,6 +810,9 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>The picker opens over the window, so the settings popup must get out of the way.</summary>
+    private void OnOpenLanguagePicker(object sender, RoutedEventArgs e) => SettingsToggle.IsChecked = false;
+
     private void OnSettingsPopupOpened(object sender, EventArgs e)
     {
         // Never taller than the window it opens over — scroll instead of

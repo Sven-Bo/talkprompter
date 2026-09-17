@@ -13,4 +13,8 @@
     <ProjectReference Include="..\Teleprompter.Core\Teleprompter.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Teleprompter.Core.Tests" />
+  </ItemGroup>
+
 </Project>

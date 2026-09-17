@@ -12,6 +12,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using Teleprompter.App.Services;
 using Teleprompter.Audio;
+using Teleprompter.Core.Languages;
 using Teleprompter.Core.Matching;
 using Teleprompter.Core.Speech;
 using Teleprompter.Core.Text;
@@ -39,14 +40,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private const double MicMeterFullWidth = 56.0;
 
     private readonly Dispatcher _dispatcher;
-    private ModelLocator.ModelInventory _models;
     private readonly UpdateService _updates;
 
     private ScriptMatcher? _matcher;
     private ISpeechEngine? _engine;
     private IAudioCapture? _capture;
-    private CancellationTokenSource? _downloadCts;
-    private bool _modelPromptDismissed;
     private ScriptFileWatcher? _fileWatcher;
     private bool _pendingFileReload;
 
@@ -126,30 +124,19 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         _autoUpdateCheckEnabled = InitialSettings.AutoUpdateCheck;
         _followFileChanges = InitialSettings.FollowFileChanges;
+
+        // Languages: fields, not properties — no script rebuild or save while constructing.
         _modelPromptDismissed = InitialSettings.ModelPromptDismissed;
-        _selectedVoicePack = ModelDownloadService.Packs[0];
         _models = ModelLocator.FindModels();
-        RefreshModelState();
-        _showModelPrompt = _models.IsEmpty && !_modelPromptDismissed;
+        _activeLanguage = VoiceLanguageCatalog.ResolveActive(InitialSettings.VoiceLanguage, _models.LanguageCodes);
+        _isFirstRunPrompt = !_models.CanRecognize(_activeLanguage.Code) && !_modelPromptDismissed;
+        // Upgrading with several packs installed by hand: ask which one is the reading language.
+        bool unsureWhichPack = InitialSettings.VoiceLanguage is null && _models.LanguageCodes.Count > 1;
+        _showModelPrompt = _isFirstRunPrompt || unsureWhichPack;
+        RefreshLanguageState();
 
         AttachFileWatcher();
     }
-
-    /// <summary>Re-derive everything that depends on which models are installed.</summary>
-    private void RefreshModelState()
-    {
-        EngineDescription = _models.IsEmpty
-            ? "No speech model found — running in simulation mode."
-            : "Models: "
-              + string.Join(" · ", new[]
-              {
-                  _models.VoskDir is null ? null : $"Vosk ({Path.GetFileName(_models.VoskDir)})",
-                  _models.SherpaDir is null ? null : "sherpa-onnx"
-              }.Where(s => s is not null));
-        OnPropertyChanged(nameof(HasNoModels));
-    }
-
-    public bool HasNoModels => _models.IsEmpty;
 
     // ----- Theme -----
 
@@ -171,88 +158,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     partial void OnSelectedThemeChoiceChanged(string value)
         => ThemeService.Apply(ThemeModeFromChoice);
-
-    // ----- Voice pack download -----
-
-    public IReadOnlyList<VoicePack> VoicePacks => ModelDownloadService.Packs;
-
-    [ObservableProperty] private VoicePack? _selectedVoicePack;
-    [ObservableProperty] private bool _showModelPrompt;
-    [ObservableProperty] private bool _isDownloading;
-    [ObservableProperty] private double _downloadProgress;
-    [ObservableProperty] private string _downloadStatus = string.Empty;
-
-    [RelayCommand]
-    private void ShowModelPromptOverlay()
-    {
-        DownloadStatus = string.Empty;
-        ShowModelPrompt = true;
-    }
-
-    [RelayCommand]
-    private void SkipModelPrompt()
-    {
-        _downloadCts?.Cancel();
-        _modelPromptDismissed = true;
-        ShowModelPrompt = false;
-        JsonSettingsStore.Save(BuildSettings() with
-        {
-            WindowLeft = InitialSettings.WindowLeft,
-            WindowTop = InitialSettings.WindowTop,
-            WindowWidth = InitialSettings.WindowWidth,
-            WindowHeight = InitialSettings.WindowHeight,
-            WindowMaximized = InitialSettings.WindowMaximized,
-            Topmost = InitialSettings.Topmost
-        });
-    }
-
-    [RelayCommand]
-    private void CancelDownload() => _downloadCts?.Cancel();
-
-    [RelayCommand]
-    private async Task DownloadModelAsync()
-    {
-        if (SelectedVoicePack is null || IsDownloading)
-        {
-            return;
-        }
-
-        _downloadCts = new CancellationTokenSource();
-        IsDownloading = true;
-        DownloadProgress = 0;
-        DownloadStatus = "Starting download…";
-
-        try
-        {
-            var progress = new Progress<(double Percent, string Status)>(p =>
-            {
-                DownloadProgress = p.Percent;
-                DownloadStatus = p.Status;
-            });
-
-            await ModelDownloadService.DownloadAsync(SelectedVoicePack, progress, _downloadCts.Token);
-
-            _models = ModelLocator.FindModels();
-            RefreshModelState();
-            _modelPromptDismissed = true;
-            ShowModelPrompt = false;
-            StatusText = "Voice pack ready. Press Start and read.";
-        }
-        catch (OperationCanceledException)
-        {
-            DownloadStatus = "Download cancelled.";
-        }
-        catch (Exception ex)
-        {
-            DownloadStatus = $"Download failed: {ex.Message} Check your internet connection and try again.";
-        }
-        finally
-        {
-            IsDownloading = false;
-            _downloadCts.Dispose();
-            _downloadCts = null;
-        }
-    }
 
     /// <summary>Settings as loaded at startup; the window reads placement from here.</summary>
     public AppSettings InitialSettings { get; }
@@ -407,7 +312,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>Recompile <see cref="Script"/> from the current text and re-render.</summary>
     public void RebuildScript()
     {
-        Script = ScriptModel.Build(ScriptText ?? string.Empty);
+        Script = ScriptModel.Build(ScriptText ?? string.Empty, ActiveLanguage.TextRules);
         ScriptRebuilt?.Invoke(this, EventArgs.Empty);
     }
 
@@ -456,13 +361,28 @@ public partial class MainViewModel : ObservableObject, IDisposable
             CurrentTokenIndex = -1;
         }
 
+        // A pack may have been deleted since the last scan; loading a missing
+        // model would fail deep inside the native recognizer.
+        RefreshModels();
+
         var vocabulary = Script!.MatchWords.Distinct().ToList();
-        SpeechEngineFactory.Selection selection = SpeechEngineFactory.Create(
-            ForceSimulation ? null : _models.SherpaDir,
-            ForceSimulation ? null : _models.VoskDir,
-            text,
-            vocabulary,
-            Preference);
+        SpeechEngineFactory.Selection selection;
+        try
+        {
+            selection = SpeechEngineFactory.Create(
+                ForceSimulation ? null : _models.SherpaDirFor(ActiveLanguage.Code),
+                ForceSimulation ? null : _models.VoskDirFor(ActiveLanguage.Code),
+                text,
+                vocabulary,
+                Preference);
+        }
+        catch (Exception ex)
+        {
+            Stop();
+            StatusText = $"Could not load the {ActiveLanguage.EnglishName} voice pack: {ex.Message}";
+            return;
+        }
+
         _engine = selection.Engine;
         _engine.HypothesisReceived += OnHypothesis;
         EngineDescription = selection.Description;
@@ -490,7 +410,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         IsRunning = true;
         StatusText = selection.IsSimulated
-            ? "Simulating a reader…"
+            ? ForceSimulation
+                ? "Simulating a reader…"
+                : $"No {ActiveLanguage.EnglishName} voice pack yet, so this is a simulation. Get it in Settings › Language."
             : resumed
                 ? $"Listening from word {CurrentTokenIndex + 1}… · {selection.Description}"
                 : $"Listening… · {selection.Description}";
@@ -914,6 +836,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             AutoUpdateCheck = AutoUpdateCheckEnabled,
             FollowFileChanges = FollowFileChanges,
             ModelPromptDismissed = _modelPromptDismissed,
+            VoiceLanguage = ActiveLanguage.Code,
             // Config-only values with no UI must survive every save, or the
             // first settings write would silently disable auto-update.
             UpdateFeedUrl = InitialSettings.UpdateFeedUrl,

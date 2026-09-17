@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using Teleprompter.Core.Speech;
 
 namespace Teleprompter.Speech;
@@ -78,7 +77,5 @@ public static class SpeechEngineFactory
             Description: $"sherpa-onnx: {name}");
     }
 
-    public static bool IsSherpaModel(string dir)
-        => File.Exists(Path.Combine(dir, "tokens.txt"))
-           && Directory.GetFiles(dir, "encoder*.onnx").Any();
+    public static bool IsSherpaModel(string dir) => ModelScanner.IsSherpaModel(dir);
 }

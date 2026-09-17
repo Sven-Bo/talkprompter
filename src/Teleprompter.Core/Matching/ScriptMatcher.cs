@@ -48,7 +48,7 @@ public sealed class ScriptMatcher
     /// </summary>
     public MatchUpdate Process(string hypothesis)
     {
-        List<string> words = TextNormalizer.ToMatchWords(hypothesis);
+        List<string> words = TextNormalizer.ToMatchWords(hypothesis, _script.TextRules);
         if (words.Count == 0 || _script.MatchWordCount == 0)
         {
             return Snapshot(advanced: false);

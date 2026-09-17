@@ -12,31 +12,55 @@ namespace Teleprompter.Core.Text;
 public static class TextNormalizer
 {
     private static bool IsWordChar(char c)
-        => char.IsLetterOrDigit(c) || c == '\'' || c == '’';
+        => char.IsLetterOrDigit(c) || IsCombiningMark(c) || c == '\'' || c == '’';
+
+    // Accents typed as a separate combining character ("e" + U+0301) belong to
+    // the letter before them, not between two words.
+    private static bool IsCombiningMark(char c) => CharUnicodeInfo.GetUnicodeCategory(c)
+        is UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark or UnicodeCategory.EnclosingMark;
 
     /// <summary>
-    /// Normalizes a single raw word: lower-cased, keeping only letters and
-    /// digits (apostrophes and other punctuation are dropped).
+    /// Normalizes a single raw word: lower-cased, keeping only letters, digits
+    /// and their accents (apostrophes and other punctuation are dropped), in
+    /// composed form so "e" + combining acute equals "é" as recognizers write it.
     /// </summary>
-    public static string NormalizeWord(string raw)
+    public static string NormalizeWord(string raw) => NormalizeWord(raw, TextRules.English);
+
+    /// <inheritdoc cref="NormalizeWord(string)"/>
+    public static string NormalizeWord(string raw, TextRules rules)
     {
         var sb = new StringBuilder(raw.Length);
+        bool hasLetterOrDigit = false;
         foreach (char c in raw)
         {
             if (char.IsLetterOrDigit(c))
             {
-                sb.Append(char.ToLower(c, CultureInfo.InvariantCulture));
+                hasLetterOrDigit = true;
+                sb.Append(char.ToLower(c, rules.Casing));
+            }
+            else if (IsCombiningMark(c))
+            {
+                sb.Append(c);
             }
         }
 
-        return sb.ToString();
+        if (!hasLetterOrDigit)
+        {
+            return string.Empty; // a stray accent is not a word
+        }
+
+        string word = sb.ToString();
+        return word.IsNormalized(NormalizationForm.FormC) ? word : word.Normalize(NormalizationForm.FormC);
     }
 
     /// <summary>
     /// Splits arbitrary text (e.g. a speech hypothesis) into normalized match
     /// words, expanding numeric tokens into their spoken words.
     /// </summary>
-    public static List<string> ToMatchWords(string text)
+    public static List<string> ToMatchWords(string text) => ToMatchWords(text, TextRules.English);
+
+    /// <inheritdoc cref="ToMatchWords(string)"/>
+    public static List<string> ToMatchWords(string text, TextRules rules)
     {
         var words = new List<string>();
         if (string.IsNullOrEmpty(text))
@@ -60,13 +84,13 @@ public static class TextNormalizer
                 i++;
             }
 
-            string normalized = NormalizeWord(text.Substring(start, i - start));
+            string normalized = NormalizeWord(text.Substring(start, i - start), rules);
             if (normalized.Length == 0)
             {
                 continue;
             }
 
-            AppendExpanded(normalized, words);
+            AppendExpanded(normalized, words, rules);
         }
 
         return words;
@@ -76,7 +100,10 @@ public static class TextNormalizer
     /// Tokenizes display text into <see cref="ScriptToken"/> values, preserving
     /// each word's character span in the original string for highlighting.
     /// </summary>
-    public static List<ScriptToken> Tokenize(string text)
+    public static List<ScriptToken> Tokenize(string text) => Tokenize(text, TextRules.English);
+
+    /// <inheritdoc cref="Tokenize(string)"/>
+    public static List<ScriptToken> Tokenize(string text, TextRules rules)
     {
         var tokens = new List<ScriptToken>();
         if (string.IsNullOrEmpty(text))
@@ -102,7 +129,7 @@ public static class TextNormalizer
             }
 
             int length = i - start;
-            string normalized = NormalizeWord(text.Substring(start, length));
+            string normalized = NormalizeWord(text.Substring(start, length), rules);
             if (normalized.Length == 0)
             {
                 continue;
@@ -114,9 +141,9 @@ public static class TextNormalizer
         return tokens;
     }
 
-    private static void AppendExpanded(string normalized, List<string> output)
+    private static void AppendExpanded(string normalized, List<string> output, TextRules rules)
     {
-        if (NumberExpander.IsAllDigits(normalized))
+        if (rules.ExpandNumbers && NumberExpander.IsAllDigits(normalized))
         {
             foreach (string word in NumberExpander.ToWords(normalized))
             {

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using Teleprompter.Core.Speech;
 using Vosk;
@@ -22,6 +23,15 @@ namespace Teleprompter.Speech;
 public sealed class VoskSpeechEngine : ISpeechEngine
 {
     private const int MaxGrammarWords = 1200;
+
+    // Vosk's JSON reader does not decode \u escapes, so every non-ASCII word
+    // (größe, łódź, привет) must be written literally or it silently drops out
+    // of the grammar. Words are letters and digits only, so relaxed escaping
+    // is safe here.
+    private static readonly JsonSerializerOptions GrammarJson = new()
+    {
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
 
     private readonly Model _model;
     private readonly VoskRecognizer _recognizer;
@@ -107,7 +117,7 @@ public sealed class VoskSpeechEngine : ISpeechEngine
         // change the grammar of a live recognizer without rebuilding it.
     }
 
-    private static string? BuildGrammar(IReadOnlyList<string>? vocabulary)
+    internal static string? BuildGrammar(IReadOnlyList<string>? vocabulary)
     {
         if (vocabulary is null || vocabulary.Count == 0)
         {
@@ -130,7 +140,7 @@ public sealed class VoskSpeechEngine : ISpeechEngine
 
         var entries = distinct.ToList();
         entries.Add("[unk]");
-        return JsonSerializer.Serialize(entries);
+        return JsonSerializer.Serialize(entries, GrammarJson);
     }
 
     private void Emit(string json, bool isFinal)

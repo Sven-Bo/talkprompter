@@ -22,7 +22,17 @@ If you prefer no installation, there is also a portable zip on the same page.
 
 You need the .NET 8 Desktop Runtime. Windows will offer to install it if it is missing.
 
-On the first start the app offers to download a small voice pack (about 40 MB, English or German). That is the part that understands your voice. One click and you are done.
+On the first start the app offers to download a voice pack for the language you read in (30 to 70 MB). That is the part that understands your voice. One click and you are done. You can add or switch languages any time under **Settings › Language**.
+
+## Languages
+
+TalkPrompter follows your voice in 12 languages:
+
+English, Czech, Dutch, French, German, Indonesian, Italian, Polish, Portuguese, Russian, Spanish and Turkish.
+
+Tip: in languages other than English, write numbers as words. In Polish, for example, write "dwadzieścia pięć" instead of "25".
+
+Missing your language? [Open an issue](https://github.com/Sven-Bo/talkprompter/issues). A language can be added when there is a good offline speech model for it.
 
 ## How to use it
 
@@ -43,6 +53,7 @@ That is really all. Some handy extras:
 - Scrolls automatically by listening to your voice
 - Pauses when you pause, no fixed scroll speed
 - Works 100% offline, no cloud, no account, no subscription
+- 12 languages, switchable any time
 - Loads Word documents and reloads them live when you save in Word
 - Remembers your recent scripts and where you stopped in each one
 - Camera mode, mirror mode, full screen, adjustable text size and column width
@@ -58,10 +69,12 @@ cd talkprompter
 dotnet run --project src/Teleprompter.App
 ```
 
-The speech models are not part of the repo because they are large. The script above downloads one for you. Without a model the app runs in a simulation mode so you can still try it.
+The speech models are not part of the repo because they are large. The script above downloads the English one for you, and the app can download any other language itself. Without a model the app runs in a simulation mode so you can still try it.
 
 ## License
 
 MIT. Do whatever you want with it.
+
+The voice packs are downloaded from their original sources: the [Vosk models](https://alphacephei.com/vosk/models) by Alpha Cephei (Apache 2.0) and, for Indonesian, a [sherpa-onnx streaming model](https://huggingface.co/spacewave/sherpa-onnx-streaming-zipformer2-id) (MIT).
 
 TalkPrompter is made by Sven Bosau ([Bosau Digital LLC](https://pythonandvba.com)).
