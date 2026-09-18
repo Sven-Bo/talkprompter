@@ -33,6 +33,8 @@ public partial class MainWindow : Window
     private bool _isFullscreen;
     private Rect _boundsBeforeCamera;
     private bool _topmostBeforeCamera;
+    private WindowStyle _styleBeforeCamera = WindowStyle.SingleBorderWindow;
+    private ResizeMode _resizeBeforeCamera = ResizeMode.CanResize;
     private bool _inCameraMode;
     private DispatcherTimer? _countdownTimer;
     private int _countdownValue;
@@ -379,11 +381,14 @@ public partial class MainWindow : Window
     private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
 
     /// <summary>
-    /// Work area of the monitor this window is on, in WPF device-independent
+    /// Bounds of the monitor this window is on, in WPF device-independent
     /// units. Camera mode must target the current monitor — the webcam is
     /// wherever the user put the window, not necessarily on the primary screen.
+    /// The full monitor rectangle is used (not the work area) so the strip
+    /// can hug the physical top edge, right under the webcam, even when the
+    /// taskbar is docked at the top.
     /// </summary>
-    private Rect GetCurrentMonitorWorkArea()
+    private Rect GetCurrentMonitorBounds()
     {
         try
         {
@@ -394,17 +399,17 @@ public partial class MainWindow : Window
                 && PresentationSource.FromVisual(this)?.CompositionTarget is { } target)
             {
                 Matrix fromDevice = target.TransformFromDevice;
-                Point topLeft = fromDevice.Transform(new Point(info.Work.Left, info.Work.Top));
-                Point bottomRight = fromDevice.Transform(new Point(info.Work.Right, info.Work.Bottom));
+                Point topLeft = fromDevice.Transform(new Point(info.Monitor.Left, info.Monitor.Top));
+                Point bottomRight = fromDevice.Transform(new Point(info.Monitor.Right, info.Monitor.Bottom));
                 return new Rect(topLeft, bottomRight);
             }
         }
         catch (Exception)
         {
-            // Fall through to the primary work area.
+            // Fall through to the primary screen.
         }
 
-        return SystemParameters.WorkArea;
+        return new Rect(0, 0, SystemParameters.PrimaryScreenWidth, SystemParameters.PrimaryScreenHeight);
     }
 
     private void OnToggleCameraMode(object sender, RoutedEventArgs e)
@@ -420,20 +425,29 @@ public partial class MainWindow : Window
                 ? new Rect(Left, Top, ActualWidth, ActualHeight)
                 : RestoreBounds;
             _topmostBeforeCamera = Topmost;
+            _styleBeforeCamera = WindowStyle;
+            _resizeBeforeCamera = ResizeMode;
 
-            Rect work = GetCurrentMonitorWorkArea();
+            // Drop the title bar and frame: with a caption the first line of
+            // text starts a title bar's height below the screen edge, which is
+            // exactly the gaze distance camera mode is meant to minimise.
+            Rect screen = GetCurrentMonitorBounds();
             double width = 520;
             WindowState = WindowState.Normal;
+            WindowStyle = WindowStyle.None;
+            ResizeMode = ResizeMode.CanResize;
             Width = width;
-            Height = Math.Max(MinHeight, work.Height * 0.72);
-            Left = work.Left + (work.Width - width) / 2;
-            Top = work.Top;
+            Height = Math.Max(MinHeight, screen.Height * 0.72);
+            Left = screen.Left + (screen.Width - width) / 2;
+            Top = screen.Top;
             Topmost = true;
             TopmostToggle.IsChecked = true;
             _inCameraMode = true;
         }
         else
         {
+            WindowStyle = _styleBeforeCamera;
+            ResizeMode = _resizeBeforeCamera;
             Left = _boundsBeforeCamera.Left;
             Top = _boundsBeforeCamera.Top;
             Width = _boundsBeforeCamera.Width;
@@ -556,7 +570,7 @@ public partial class MainWindow : Window
         }
         else
         {
-            WindowStyle = WindowStyle.SingleBorderWindow;
+            WindowStyle = _inCameraMode ? WindowStyle.None : WindowStyle.SingleBorderWindow;
             ResizeMode = ResizeMode.CanResize;
             WindowState = _stateBeforeFullscreen;
             _isFullscreen = false;
